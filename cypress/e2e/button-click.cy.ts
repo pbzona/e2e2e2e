@@ -11,20 +11,22 @@ describe('Server action tests for /button-click page', () => {
 
   // Basic request interception
   it('intercepts server action on button click and returns mock response', () => {
+    // Set this up before visiting the page to ensure it's prepared to receive requests
     cy.intercept('POST', '/button-click', async req => ({
       statusCode: 200,
-      body: JSON.stringify({ liked: 1, test: true })
-    })).as('serverActionToggleLike').then(() => {
-      cy.visit('/button-click')
+      body: JSON.stringify({ liked: false })
+    })).as('serverActionToggleLike')
+    cy.visit('/button-click')
 
-      const btn = cy.get('#likeButton')
-      btn.should('contain.text', 'Like')
-      btn.click()
+    const btn = cy.get('#likeButton')
+    btn.should('contain.text', 'Like')
+    btn.click()
 
-      cy.wait('@serverActionToggleLike').then(interception => {
-        console.log("Response body:", interception.response?.body)
-        btn.should('contain.text', 'Unlike')
-      })
+    cy.wait('@serverActionToggleLike').then(interception => {
+      console.log("Response body:", interception.response?.body)
+
+      expect(interception.response?.statusCode).to.equal(200)
+      btn.should('contain.text', 'Unlike')
     })
   })
 

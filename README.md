@@ -23,7 +23,7 @@ Wait... if the request is made to the same route it was invoked from, does that 
 
 Nope! Each request includes a `Next-Action` header whose value is the ID of that server action. This allows requests to be routed to the correct handler on the backend. Previously, this value was a hash of the source code location. As of Next 15, this ID is now a random, unguessable value for [enhanced security](https://nextjs.org/blog/next-15#enhanced-security-for-server-actions).
 
-Prior to the change, we could (theoretically) precompute the hash and use this as a very hacky workaround to the question of identifying a server action request. Emphasis on "very hacky" - this should never be used except as an educational exercise to observe the behaviors of server actions. If it's absolutely necessary to identify
+Prior to the change, we could (theoretically) precompute the hash and use this as a very hacky workaround to the question of identifying a server action request. Emphasis on "very hacky" - this should never be used except as an educational exercise to observe the behaviors of server actions.
 
 ## Testing with Cypress
 
@@ -35,7 +35,11 @@ Cypress tests can be found in the `cypress/e2e` directory. We set up a logging p
 
 To observe the behavior of a server action invoked by a click handler, go to `/button-click`, click the "Like" button, and observe the network tab. You'll see a POST request to the same URL, with a payload containing a boolean value representing state.
 
-The first test in `button-click.cy.ts` shows how one would normally intercept a network request during an e2e test. However, in this case, it fails with the error message
+The first test in `button-click.cy.ts` shows how one would normally intercept a network request during an e2e test. Some key considerations here are:
+
+- Make sure the interception is set up *before* navigating to the page
+- Since the server action is an async request, the stubbed response should be of type `Promise<T>` where `T` is the return type of your server action.
+- Creating an alias for your server action allows you to easily `wait` for it later, meaning you don't need to rely on retries or watch for secondary effects like changes to the UI.
 
 ### Server actions triggered on form submission
 
