@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Fun with Server Actions and Cypress (🚧 WIP)
 
-## Getting Started
+This is a sandbox project to explore the ways one might instrument an app's server actions with [Cypress](https://docs.cypress.io/app/get-started/why-cypress). The question that prompted me to investigate this was roughly:
 
-First, run the development server:
+> How can we test a server action that is triggered when a component on a page mounts, unprompted by user input?
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The question is a bit trickier than it first seems, but before digging in...
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> [!IMPORTANT]
+> Server actions are for side effects and mutations, not data fetching
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+It's somewhat uncommon to see a server action invoked this way ([but not unheard of](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#useeffect)). Server actions are not meant to fetch data and they should not be used to do so, even if it is technically possible. Many of the problems I work around in this project could be solved by using [route handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers) instead.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+If you are fetching data from your own application on the client, using a route handler is usually the best option. Another great option is evaluating whether you can move the request to a server component, and doing that if possible.
 
-## Learn More
+For more info on server actions and how to use them as intended, see the [Next.js docs](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations).
 
-To learn more about Next.js, take a look at the following resources:
+## How do server actions work?
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+A server action is a POST request, made to the same URL that the action was invoked on. They can be invoked from the server as well, but I'll focus on client requests in these examples.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Wait... if the request is made to the same route it was invoked from, does that mean each route can only have one server action?
 
-## Deploy on Vercel
+Nope! Each request includes a `Next-Action` header whose value is the ID of that server action. This allows requests to be routed to the correct handler on the backend. Previously, this value was a hash of the source code location. As of Next 15, this ID is now a random, unguessable value for [enhanced security](https://nextjs.org/blog/next-15#enhanced-security-for-server-actions).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Prior to the change, we could (theoretically) precompute the hash and use this as a very hacky workaround to the question of identifying a server action request. Emphasis on "very hacky" - this should never be used except as an educational exercise to observe the behaviors of server actions. If it's absolutely necessary to identify
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Testing with Cypress
+
+Testing a network connection is always challenging, so we can say right off the bat that we will probably want to stub our responses somehow. Beyond that, there's a lot of open endedness.
+
+Cypress tests can be found in the `cypress/e2e` directory. We set up a logging prefix before each test to make reading the output easier, but there is nothing complex going on here.
+
+### Server actions triggered by click handlers
+
+To observe the behavior of a server action invoked by a click handler, go to `/button-click`, click the "Like" button, and observe the network tab. You'll see a POST request to the same URL, with a payload containing a boolean value representing state.
+
+The first test in `button-click.cy.ts` shows how one would normally intercept a network request during an e2e test. However, in this case, it fails with the error message
+
+### Server actions triggered on form submission
+
+WIP
+
+### Server actions triggered in a useEffect callback on initial render
+
+WIP
+
+## Reproduction
+
+1. Clone the project and install dependencies.
+2. Optionally, start the dev server using `npm run dev` to test the expected behavior manually
+3. When ready to test, run `npm run test`
